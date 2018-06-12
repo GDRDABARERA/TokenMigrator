@@ -1,0 +1,33 @@
+<MigrationConfig>
+    <UserStore>
+        <Location>/home/wso2dinali/.wum-wso2/products/wso2is/5.4.0/wso2is-5.4.0/repository/resources/security/wso2carbon.jks</Location>
+        <Password>wso2carbon</Password>
+    </UserStore>
+    <DataSource>
+        <URL>jdbc:mysql://localhost:3306/mysql?useSSL=false</URL>
+        <UserName>root</UserName>
+        <Password>root</Password>
+        <DriverClass>com.mysql.jdbc.Driver</DriverClass>
+        <DriverJARLocation>/home/wso2dinali/.wum-wso2/products/wso2is/5.4.0/wso2is-5.4.0/repository/components/lib/mysql-connector-java-5.1.45-bin.jar</DriverJARLocation>
+    </DataSource>
+    <MigratingDetails>
+        <MigratingDetail>
+            <tableName>IDN_OAUTH2_ACCESS_TOKEN</tableName>
+            <columnName>ACCESS_TOKEN</columnName>
+            <decryptAlgorhythm></decryptAlgorhythm>
+            <encryptAlgorhythm></encryptAlgorhythm>
+        </MigratingDetail>
+        <MigratingDetail>
+            <tableName>IDN_OAUTH2_ACCESS_TOKEN</tableName>
+            <columnName>REFRESH_TOKEN</columnName>
+            <decryptAlgorhythm></decryptAlgorhythm>
+            <encryptAlgorhythm></encryptAlgorhythm>
+        </MigratingDetail>
+        <MigratingDetail>
+            <tableName>IDN_OAUTH_CONSUMER_APPS</tableName>
+            <columnName>CONSUMER_SECRET</columnName>
+            <decryptAlgorhythm></decryptAlgorhythm>
+            <encryptAlgorhythm></encryptAlgorhythm>
+        </MigratingDetail>
+    </MigratingDetails>
+</MigrationConfig>

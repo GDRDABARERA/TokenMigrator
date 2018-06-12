@@ -1,0 +1,49 @@
+<MigrationConfig>
+    <!--Decrypting keystore details - old keystore-->
+    <DecryptionKeyStore>
+        <Location>/home/wso2dinali/SUPPORT_TOOLS/Decrypy/wso2is-5.5.0/repository/resources/security/wso2carbon.jks</Location>
+        <Password>wso2carbon</Password>
+        <Alias>wso2carbon</Alias>
+    </DecryptionKeyStore>
+    <!--Encrypting keystore details - new keystore-->
+    <EncryptionKeyStore>
+        <Location>/home/wso2dinali/SUPPORT_TOOLS/Decrypy/wso2is-5.5.0/repository/resources/security/wso2carbon.jks</Location>
+        <Password>wso2carbon</Password>
+        <Alias>wso2carbon</Alias>
+    </EncryptionKeyStore>
+    <!--The details of the data source where the below tables are located-->
+    <DataSource>
+        <URL>jdbc:mysql://localhost:3306/52DB?useSSL=false</URL>
+        <UserName>root</UserName>
+        <Password>root</Password>
+        <DriverClass>com.mysql.jdbc.Driver</DriverClass>
+        <DriverJARLocation>/home/wso2dinali/SUPPORT_TOOLS/Decrypy/wso2is-5.5.0/repository/components/lib/mysql-connector-java-5.1.46-bin.jar</DriverJARLocation>
+    </DataSource>
+    <MigratingDetails>
+        <!--Add any column of a table that need to migrate in the following format-->
+        <MigratingDetail>
+            <tableName>IDN_OAUTH2_ACCESS_TOKEN</tableName>
+            <columnName>ACCESS_TOKEN</columnName>
+            <decryptAlgorithm></decryptAlgorithm>
+            <encryptAlgorithm></encryptAlgorithm>
+        </MigratingDetail>
+        <MigratingDetail>
+            <tableName>IDN_OAUTH2_ACCESS_TOKEN</tableName>
+            <columnName>REFRESH_TOKEN</columnName>
+            <decryptAlgorithm></decryptAlgorithm>
+            <encryptAlgorithm></encryptAlgorithm>
+        </MigratingDetail>
+        <MigratingDetail>
+            <tableName>IDN_OAUTH_CONSUMER_APPS</tableName>
+            <columnName>CONSUMER_SECRET</columnName>
+            <decryptAlgorithm></decryptAlgorithm>
+            <encryptAlgorithm></encryptAlgorithm>
+        </MigratingDetail>
+        <MigratingDetail>
+            <tableName>IDN_OAUTH2_AUTHORIZATION_CODE</tableName>
+            <columnName>AUTHORIZATION_CODE</columnName>
+            <decryptAlgorithm></decryptAlgorithm>
+            <encryptAlgorithm></encryptAlgorithm>
+        </MigratingDetail>
+    </MigratingDetails>
+    </MigrationConfig>

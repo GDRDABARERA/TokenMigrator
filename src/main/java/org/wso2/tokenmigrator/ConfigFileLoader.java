@@ -1,0 +1,184 @@
+/*
+ *  Copyright (c) 2018, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
+
+package org.wso2.tokenmigrator;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.wso2.tokenmigrator.Entities.DBConfigs;
+import org.wso2.tokenmigrator.Entities.MigrationConfig;
+import org.wso2.tokenmigrator.Entities.MigrationConfigs;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Read configuration from migration.xml file and store in an object.
+ */
+public class ConfigFileLoader {
+
+    private MigrationConfigs migrationConfigs;
+    private File migrationConfigFile = null;
+    private DocumentBuilderFactory dbFactory = null;
+    private DocumentBuilder dBuilder = null;
+    private Document document = null;
+    private static final Log log = LogFactory.getLog(ConfigFileLoader.class);
+
+    public ConfigFileLoader() {
+        migrationConfigs = new MigrationConfigs();
+        try {
+            migrationConfigFile = new File("/home/wso2dinali/SUPPORT_TOOLS/Decrypy/TokenMigrator/src/main/resources/migration.xml");
+            dbFactory = DocumentBuilderFactory.newInstance();
+            dBuilder = dbFactory.newDocumentBuilder();
+            document = dBuilder.parse(migrationConfigFile);
+            setMigrationConfigs();
+        } catch (ParserConfigurationException e) {
+            log.error("Invalid XML file.", e);
+        } catch (IOException e) {
+            log.error("Unable to read XML file.", e);
+        } catch (SAXException e) {
+            log.error("Invalid XML file.", e);
+        }
+    }
+
+    /**
+     * Read the migration.xml file and populate config values.
+     */
+    private void setMigrationConfigs() {
+        // Keystore Related configs for the decrypting purpose
+        Node decryptKeystoreConfig = document.getElementsByTagName("DecryptionKeyStore").item(0);
+        if (decryptKeystoreConfig.getNodeType() == Node.ELEMENT_NODE) {
+            this.migrationConfigs.decryptKeystoreLocation = ((Element) decryptKeystoreConfig).getElementsByTagName
+                ("Location").item(0).getTextContent();
+            this.migrationConfigs.decryptKeystorePassword = ((Element) decryptKeystoreConfig).getElementsByTagName
+                ("Password").item(0).getTextContent();
+            this.migrationConfigs.decryptKeystoreAlias= ((Element) decryptKeystoreConfig).getElementsByTagName
+                ("Alias").item(0).getTextContent();
+
+        }
+
+        // Keystore Related configs for the encrypting purpose
+        Node encryptKeystoreConfig = document.getElementsByTagName("EncryptionKeyStore").item(0);
+        if (encryptKeystoreConfig.getNodeType() == Node.ELEMENT_NODE) {
+            this.migrationConfigs.encryptKeystoreLocation = ((Element) encryptKeystoreConfig).getElementsByTagName
+                ("Location").item(0).getTextContent();
+            this.migrationConfigs.encryptKeystorePassword = ((Element) encryptKeystoreConfig).getElementsByTagName
+                ("Password").item(0).getTextContent();
+            this.migrationConfigs.encryptKeystoreAlias= ((Element) encryptKeystoreConfig).getElementsByTagName
+                ("Alias").item(0).getTextContent();
+
+        }
+
+        // Database related Configurations reading
+        migrationConfigs.migrationConfigList = new ArrayList<MigrationConfig>();
+        Node databaseConfig = document.getElementsByTagName("DataSource").item(0);
+        if (databaseConfig.getNodeType() == Node.ELEMENT_NODE) {
+            DBConfigs dbConfigs = new DBConfigs();
+            dbConfigs.url = ((Element) databaseConfig).getElementsByTagName("URL").item(0).getTextContent();
+            dbConfigs.username = ((Element) databaseConfig).getElementsByTagName("UserName").item(0).getTextContent();
+            dbConfigs.password = ((Element) databaseConfig).getElementsByTagName("Password").item(0).getTextContent();
+            dbConfigs.driverclass = ((Element) databaseConfig).getElementsByTagName("DriverClass").item(0).getTextContent();
+            dbConfigs.jarlocation = ((Element) databaseConfig).getElementsByTagName("DriverJARLocation").item(0).getTextContent();
+            this.migrationConfigs.dbConfig = dbConfigs;
+        }
+
+        // Migration related configurations reading
+        NodeList migrationConfigsdocList = document.getElementsByTagName("MigratingDetail");
+        for (int tempindex = 0; tempindex < migrationConfigsdocList.getLength(); tempindex++) {
+            MigrationConfig migrationConfig = new MigrationConfig();
+            Node tempNode = migrationConfigsdocList.item(tempindex);
+            if (tempNode.getNodeType() == Node.ELEMENT_NODE) {
+                Element element = (Element) tempNode;
+                migrationConfig.columnName = element.getElementsByTagName("columnName").item(0).getTextContent();
+                migrationConfig.tableName = element.getElementsByTagName("tableName").item(0).getTextContent();
+                migrationConfig.decryptionAlgorhythm = element.getElementsByTagName("decryptAlgorithm").item(0)
+                    .getTextContent();
+                migrationConfig.encryptionAlgorhythm = element.getElementsByTagName("encryptAlgorithm").item(0)
+                    .getTextContent();
+            }
+            migrationConfigs.migrationConfigList.add(migrationConfig);
+        }
+    }
+
+    /**
+     * @return database related migration configs
+     */
+    public DBConfigs getDatabaseConfigs() {
+        return this.migrationConfigs.dbConfig;
+    }
+
+    /**
+     * @return migration details
+     */
+    public List<MigrationConfig> getMigrationConfigList() {
+        return this.migrationConfigs.migrationConfigList;
+    }
+
+
+    /**
+     * @return keystore location
+     */
+    public String getDecryptKeystoreLocation() {
+        return this.migrationConfigs.decryptKeystoreLocation;
+    }
+
+    /**
+     * @return keystore password
+     */
+    public String getDecryptKeyStorePassword() {
+        return this.migrationConfigs.decryptKeystorePassword;
+    }
+
+    /**
+     * @return keystore alias
+     */
+    public String getDecryptKeyStoreAlias() {
+        return this.migrationConfigs.decryptKeystoreAlias;
+    }
+
+    /**
+     * @return keystore location
+     */
+    public String getEncryptKeystoreLocation() {
+        return this.migrationConfigs.encryptKeystoreLocation;
+    }
+
+    /**
+     * @return keystore password
+     */
+    public String getEncryptKeyStorePassword() {
+        return this.migrationConfigs.encryptKeystorePassword;
+    }
+
+    /**
+     * @return keystore alias
+     */
+    public String getEncryptKeyStoreAlias() {
+        return this.migrationConfigs.encryptKeystoreAlias;
+    }
+
+}
