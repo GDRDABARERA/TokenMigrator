@@ -17,18 +17,22 @@
 
 package org.wso2.tokenmigrator;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import com.google.gson.Gson;
+import org.apache.axiom.om.util.Base64;
+import org.wso2.carbon.core.util.CipherHolder;
 
 import javax.crypto.Cipher;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 
 /**
@@ -44,7 +48,10 @@ public class EncryptDecryptUtils {
     private String decryptKeyStoreAlias = null;
     private String encryptKeyStoreAlias = null;
     private String decryptKeystorePassword = null;
-    private static final Log log = LogFactory.getLog(EncryptDecryptUtils.class);
+    private Gson gson = new Gson();
+    private static final char[] HEX_CHARACTERS = new char[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
+            'C', 'D', 'E', 'F'};
+
 
     /**
      * Constructor initialize the keystore.
@@ -98,37 +105,117 @@ public class EncryptDecryptUtils {
     public byte[] encrypt(String plaintext, String encryptAlgorithm) throws Exception {
         Certificate[] certs = encryptKeyStore.getCertificateChain(encryptKeyStoreAlias);
         Cipher cipher;
-        if (encryptAlgorithm.isEmpty()) {
+        byte[] encryptedText;
+
+        if (encryptAlgorithm.isEmpty() || encryptAlgorithm.equals("RSA/ECB/OAEPwithSHA1andMGF1Padding")) {
+            System.out.println("Encoding : " + plaintext + " using Algo : RSA/ECB/OAEPwithSHA1andMGF1Padding ");
             cipher = Cipher.getInstance("RSA/ECB/OAEPwithSHA1andMGF1Padding", "BC");
+            byte [] convertedByteToken = plaintext.getBytes(Charset.defaultCharset());
+
+            cipher.init(Cipher.ENCRYPT_MODE, certs[0].getPublicKey());
+            encryptedText = cipher.doFinal(plaintext.getBytes());
+            encryptedText = createSelfContainedCiphertext(encryptedText,
+                    "RSA/ECB/OAEPwithSHA1andMGF1Padding",
+                    certs[0]);
+//            System.out.println("Encoded : " + encryptedText);
+
+
+
         } else {
             cipher = Cipher.getInstance(encryptAlgorithm, "BC");
-        }
-        cipher.init(Cipher.ENCRYPT_MODE, certs[0].getPublicKey());
+            System.out.println("Encoding : " + plaintext + " using Algo : " + encryptAlgorithm);
+            cipher.init(Cipher.ENCRYPT_MODE, certs[0].getPublicKey());
+            encryptedText = cipher.doFinal(plaintext.getBytes());
 
-        log.info("encryption successful");
-        return cipher.doFinal(plaintext.getBytes());
+        }
+
+
+        System.out.println("LOG: Encryption is successful");
+        return encryptedText;
     }
 
   /**
      * Decrypt the byte array.
-     * @param ciphertext byte array contains encrypted text
+     * @param CIP byte array contains encrypted text
      * @param decryptAlgorithm algorithm to decrypt
      * @return decrypted key
      * @throws Exception when unable to decrypt
      */
-    public String decrypt(byte[] ciphertext, String decryptAlgorithm) throws Exception {
+    public String decrypt(byte[] CIP, String decryptAlgorithm) throws Exception {
+
        PrivateKey privateKey = (PrivateKey) decryptKeyStore.getKey(decryptKeyStoreAlias, decryptKeystorePassword
            .toCharArray());
+
         Cipher cipher;
-        if (decryptAlgorithm.isEmpty()) {
-            cipher = Cipher.getInstance("RSA/ECB/OAEPwithSHA1andMGF1Padding", "BC");
+        byte[] cipherText;
+
+        if (decryptAlgorithm.isEmpty() || decryptAlgorithm.equals("RSA/ECB/OAEPwithSHA1andMGF1Padding")) {
+            cipher = Cipher.getInstance("RSA/ECB/OAEPwithSHA1andMGF1Padding","BC");
+            String cipherStr = new String(CIP, Charset.defaultCharset());
+            System.out.println(cipherStr);
+            CipherHolder cipherholder = gson.fromJson(cipherStr, CipherHolder.class);
+            String text = cipherholder.getCipherText();
+            System.out.println("The cipher text: " + text);
+            cipherText =cipherholder.getCipherBase64Decoded();
         } else {
             cipher = Cipher.getInstance(decryptAlgorithm, "BC");
+            cipherText = CIP;
         }
+
         cipher.init(Cipher.DECRYPT_MODE, privateKey);
-        byte[] cipherbyte = cipher.doFinal(ciphertext);
-        log.info("decryption successful");
-        return new String(cipherbyte);
+        byte[] cipherByte = null;
+        if (cipherText.length == 0) {
+            cipherByte = "".getBytes();
+            System.out.println("Empty value for plainTextBytes null will persist to DB");
+        } else {
+            cipherByte = cipher.doFinal(cipherText);
+        }
+
+        System.out.println("LOG: decryption process successful");
+        return new String(cipherByte);
+    }
+
+    /**
+     * This function will create self-contained ciphertext with metadata
+     *
+     * @param originalCipher ciphertext need to wrap with metadata
+     * @param transformation transformation used to encrypt ciphertext
+     * @param certificate certificate that holds relevant keys used to encrypt
+     * @return setf-contained ciphertext
+     * @throws CertificateEncodingException
+     * @throws NoSuchAlgorithmException
+     */
+    public byte[] createSelfContainedCiphertext(byte[] originalCipher, String transformation, Certificate certificate)
+            throws CertificateEncodingException, NoSuchAlgorithmException {
+
+        CipherHolder cipherHolder = new CipherHolder();
+        cipherHolder.setCipherText(Base64.encode(originalCipher));
+        cipherHolder.setTransformation(transformation);
+        cipherHolder.setThumbPrint(calculateThumbprint(certificate, "SHA-1"), "SHA-1");
+        String cipherWithMetadataStr = gson.toJson(cipherHolder);
+
+        System.out.println("Cipher with meta data : " + cipherWithMetadataStr);
+
+        return cipherWithMetadataStr.getBytes(Charset.defaultCharset());
+    }
+
+    private String calculateThumbprint(Certificate certificate, String digest)
+            throws NoSuchAlgorithmException, CertificateEncodingException {
+
+        MessageDigest messageDigest = MessageDigest.getInstance(digest);
+        messageDigest.update(certificate.getEncoded());
+        byte[] digestByteArray = messageDigest.digest();
+
+        //convert digest in form of byte array to hex format
+        StringBuffer strBuffer = new StringBuffer();
+
+        for (int i = 0; i < digestByteArray.length; i++) {
+            int leftNibble = (digestByteArray[i] & 0xF0) >> 4;
+            int rightNibble = (digestByteArray[i] & 0x0F);
+            strBuffer.append(HEX_CHARACTERS[leftNibble]).append(HEX_CHARACTERS[rightNibble]);
+        }
+
+        return strBuffer.toString();
     }
 
 }

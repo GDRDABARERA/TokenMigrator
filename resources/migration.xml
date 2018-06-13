@@ -13,7 +13,7 @@
     </EncryptionKeyStore>
     <!--The details of the data source where the below tables are located-->
     <DataSource>
-        <URL>jdbc:mysql://localhost:3306/52DB?useSSL=false</URL>
+        <URL>jdbc:mysql://localhost:3306/SCISUB?useSSL=false</URL>
         <UserName>root</UserName>
         <Password>root</Password>
         <DriverClass>com.mysql.jdbc.Driver</DriverClass>

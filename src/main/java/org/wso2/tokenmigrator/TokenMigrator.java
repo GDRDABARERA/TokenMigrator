@@ -18,8 +18,6 @@
 package org.wso2.tokenmigrator;
 
 import org.apache.axiom.om.util.Base64;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.wso2.tokenmigrator.Entities.DBConfigs;
 import org.wso2.tokenmigrator.Entities.MigrationConfig;
@@ -33,17 +31,17 @@ import java.util.List;
  */
 public class TokenMigrator {
 
-    private static final Log log = LogFactory.getLog(TokenMigrator.class);
+
 
     /**
-     * Main methord.
+     * Main method.
      * @param args command line arguments.
      * @throws Exception When configs are wrong.
      */
     public static void main(String[] args) throws Exception {
-        //Security.insertProviderAt(new BouncyCastleProvider(), 1);
+
         Security.addProvider(new BouncyCastleProvider());
-        ConfigFileLoader configFileLoader = new ConfigFileLoader();
+        ConfigFileLoader configFileLoader = new ConfigFileLoader(args[0]);
         List<MigrationConfig> migrationConfigsList = configFileLoader.getMigrationConfigList();
         DBConfigs databaseConfigs = configFileLoader.getDatabaseConfigs();
         DBUtils dbUtils = new DBUtils(databaseConfigs);
@@ -51,19 +49,40 @@ public class TokenMigrator {
         String tempToken;
         String tempDecodedToken;
         byte[] tempEncodeToken;
-        int count = 0;
+
         for (MigrationConfig config:migrationConfigsList) {
-            ResultSet listOfTokens = dbUtils.getTokensInDatabase(config.tableName, config.columnName);
-            System.out.println("Key migration started for table " + config.tableName + " Column " + config.columnName);
-            while (listOfTokens.next()) {
-                tempToken = listOfTokens.getString(config.columnName);
-                tempDecodedToken = encryptDecryptUtils.decrypt(Base64.decode(tempToken), config.decryptionAlgorhythm);
-                tempEncodeToken = encryptDecryptUtils.encrypt(tempDecodedToken, config.encryptionAlgorhythm);
-                dbUtils.updateTable(config.tableName, config.columnName, Base64.encode(tempEncodeToken), tempToken);
-                count++;
+            int loop = 0;
+            int count = 0;
+
+            System.out.println("LOG: Key migration started for table " + config.tableName + " Column " + config
+                    .columnName);
+            while (loop < 2) {
+                ResultSet listOfTokens = dbUtils.getTokensInDatabase(config.tableName, config.columnName);
+                if (loop == 1) {
+                    System.out.println("LOG: migration is successful, Hence putting back to DB \n");
+                }
+                while (listOfTokens.next()) {
+                    tempToken = listOfTokens.getString(config.columnName);
+
+                    tempDecodedToken = encryptDecryptUtils.decrypt(Base64.decode(tempToken), config.decryptionAlgorhythm);
+                    tempEncodeToken = encryptDecryptUtils.encrypt(tempDecodedToken, config.encryptionAlgorhythm);
+
+                    if (loop == 1) {
+                        System.out.println("LOG : decrypting started for the token : " + tempToken + "\n");
+                        System.out.println("LOG: encrypted token to be put to DB back : " + Base64.encode
+                                (tempEncodeToken) + "\n");
+                        System.out.println("-------------------------------------------");
+                        dbUtils.updateTable(config.tableName, config.columnName, Base64.encode(tempEncodeToken),
+                             tempToken);
+                        count++;
+                    }
+                }
+                loop++;
             }
-            System.out.println("Key migration finished for table " + config.tableName + " Column " + config.columnName);
-            System.out.printf("Total of " + count + " entries migrated");
+            System.out.println("LOG: Key migration finished for table " + config.tableName + " Column " + config
+                    .columnName);
+            System.out.printf("LOG: Total of " + count + " entries migrated");
+            System.out.println("=======================================================\n\n");
         }
         dbUtils.closeConnection();
     }

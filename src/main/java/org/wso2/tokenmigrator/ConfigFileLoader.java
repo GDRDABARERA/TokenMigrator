@@ -17,8 +17,6 @@
 
 package org.wso2.tokenmigrator;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -46,22 +44,21 @@ public class ConfigFileLoader {
     private DocumentBuilderFactory dbFactory = null;
     private DocumentBuilder dBuilder = null;
     private Document document = null;
-    private static final Log log = LogFactory.getLog(ConfigFileLoader.class);
 
-    public ConfigFileLoader() {
+    public ConfigFileLoader(String filepath) {
         migrationConfigs = new MigrationConfigs();
         try {
-            migrationConfigFile = new File("/home/wso2dinali/SUPPORT_TOOLS/Decrypy/TokenMigrator/src/main/resources/migration.xml");
+            migrationConfigFile = new File(filepath);
             dbFactory = DocumentBuilderFactory.newInstance();
             dBuilder = dbFactory.newDocumentBuilder();
             document = dBuilder.parse(migrationConfigFile);
             setMigrationConfigs();
         } catch (ParserConfigurationException e) {
-            log.error("Invalid XML file.", e);
+            System.out.println("Invalid XML file." + e);
         } catch (IOException e) {
-            log.error("Unable to read XML file.", e);
+            System.out.println("Unable to read XML file." + e);
         } catch (SAXException e) {
-            log.error("Invalid XML file.", e);
+            System.out.println("Invalid XML file." + e);
         }
     }
 

@@ -46,7 +46,7 @@ public class DBUtils {
             Driver d = (Driver)Class.forName(configs.driverclass, true, ucl).newInstance();
             DriverManager.registerDriver(new DriverShim(d));
         } catch (ClassNotFoundException e) {
-            System.out.println("Invelid driver");
+            System.out.println("Invalid driver");
             e.printStackTrace();
         } catch (IllegalAccessException e) {
             e.printStackTrace();
@@ -80,12 +80,14 @@ public class DBUtils {
      */
     public int updateTable(String tableName, String columnName, String newValue, String currentValue) {
         try {
-            PreparedStatement updatestatement = databaseconnection.prepareStatement(
+            PreparedStatement updateStatement = databaseconnection.prepareStatement(
                     "UPDATE " + tableName + " SET " + columnName + "= ? WHERE " + columnName + " = ?");
-            updatestatement.setString(1, newValue);
-            updatestatement.setString(2, currentValue);
-            int temp = updatestatement.executeUpdate();
-            databaseconnection.commit();
+            updateStatement.setString(1, newValue);
+            updateStatement.setString(2, currentValue);
+            int temp = updateStatement.executeUpdate();
+            if (databaseconnection.getAutoCommit() != true) {
+                databaseconnection.commit();   
+            }
             return temp;
         } catch (SQLException e) {
             System.out.println("Unable To update the table");
